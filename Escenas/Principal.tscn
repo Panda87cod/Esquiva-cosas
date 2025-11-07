@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3 uid="uid://cddl8j6w0vwe6"]
+
+[ext_resource type="Script" uid="uid://b3b7ang43da4r" path="res://Scripts/Principal.gd" id="1_k00ba"]
+[ext_resource type="Script" uid="uid://noqbbscw1b32" path="res://Scripts/Jugador.gd" id="2_f3gyp"]
+[ext_resource type="Texture2D" uid="uid://hxj1f5vwdeg" path="res://Assets/jugador.png" id="3_f3gyp"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_05vgh"]
+size = Vector2(50, 50)
+
+[sub_resource type="GDScript" id="GDScript_87gwq"]
+script/source = "extends Timer
+"
+
+[node name="EscenaJuego" type="Node2D"]
+script = ExtResource("1_k00ba")
+
+[node name="Jugador" type="Area2D" parent="."]
+script = ExtResource("2_f3gyp")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Jugador"]
+position = Vector2(25, 25)
+shape = SubResource("RectangleShape2D_05vgh")
+
+[node name="Jugador" type="Sprite2D" parent="Jugador"]
+position = Vector2(25, 25)
+texture = ExtResource("3_f3gyp")
+
+[node name="GeneradorObstaculos" type="Timer" parent="."]
+wait_time = 2.0
+autostart = true
+script = SubResource("GDScript_87gwq")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]

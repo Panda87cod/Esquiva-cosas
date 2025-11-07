@@ -1,0 +1,49 @@
+[gd_scene load_steps=2 format=3 uid="uid://ba1ylcycvb6ot"]
+
+[ext_resource type="Script" uid="uid://caomrdiphp45k" path="res://Scripts/Tienda.gd" id="1_28ee4"]
+
+[node name="EscenaTienda" type="Node2D"]
+
+[node name="Tienda" type="CanvasLayer" parent="."]
+script = ExtResource("1_28ee4")
+
+[node name="Fondo" type="ColorRect" parent="Tienda"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.3, 0.95)
+
+[node name="Titulo" type="Label" parent="Tienda"]
+offset_left = 260.0
+offset_top = 80.0
+offset_right = 460.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 24
+text = "TIENDA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MonedasTienda" type="Label" parent="Tienda"]
+offset_left = 260.0
+offset_top = 160.0
+offset_right = 460.0
+offset_bottom = 200.0
+theme_override_font_sizes/font_size = 24
+text = "Tus monedas: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ContenedorObjetos" type="VBoxContainer" parent="Tienda"]
+offset_left = 160.0
+offset_top = 220.0
+offset_right = 560.0
+offset_bottom = 520.0
+
+[node name="BotonVolver" type="Button" parent="Tienda"]
+offset_left = 260.0
+offset_top = 550.0
+offset_right = 460.0
+offset_bottom = 610.0
+text = "VOLVER AL MENÚ"
