@@ -30,12 +30,18 @@ func _ready():
 
 func cargar_datos():
 	var config = ConfigFile.new()
-	var error = config.load("user://config.cfg")
+	
+	# Usar ruta condicional
+	var ruta
+	if OS.has_feature("android"):
+		ruta = OS.get_user_data_dir() + "/config.cfg"
+	else:
+		ruta = "user://config.cfg"
+	
+	var error = config.load(ruta)
 	if error == OK:
 		monedas_actuales = config.get_value("monedas", "monedas_acumuladas", 0)
-		# Cargar estado de TODOS los items
-		for item_key in items_tienda.keys():
-			items_tienda[item_key]["comprado"] = config.get_value("tienda", item_key, false)
+		items_tienda["escudo"]["comprado"] = config.get_value("tienda", "escudo", false)
 
 func configurar_ui():
 	$MonedasTienda.text = "Tus monedas: " + str(monedas_actuales)
@@ -141,19 +147,23 @@ func comprar_item(item_key):
 
 func guardar_datos():
 	var config = ConfigFile.new()
-	var error = config.load("user://config.cfg")
-	if error != OK:
-		print("Creando nuevo archivo de configuración")
 	
-	# Guardar monedas
+	# Usar ruta condicional
+	var ruta
+	if OS.has_feature("android"):
+		ruta = OS.get_user_data_dir() + "/config.cfg"
+	else:
+		ruta = "user://config.cfg"
+	
+	# Cargar configuración existente
+	var error = config.load(ruta)
+	
+	# Solo guardar monedas y estado del escudo
 	config.set_value("monedas", "monedas_acumuladas", monedas_actuales)
+	config.set_value("tienda", "escudo", items_tienda["escudo"]["comprado"])
 	
-	# Guardar estado de TODOS los items
-	for item_key in items_tienda.keys():
-		config.set_value("tienda", item_key, items_tienda[item_key]["comprado"])
-	
-	config.save("user://config.cfg")
-	print("Datos guardados correctamente")
+	# Guardar archivo
+	config.save(ruta)
 
 # Funciones específicas para cada item (se llaman automáticamente después de comprar)
 func _on_comprar_escudo():

@@ -41,35 +41,49 @@ func _ready():
 	jugador.juego_terminado.connect(_on_jugador_game_over)
 	jugador.solicitar_sonido_salto.connect(_on_salto_solicitado)
 	
-	# Configurar timer de obstáculos con frecuencia inicial
+	# Configurar timers
 	timer_obstaculos.wait_time = frecuencia_obstaculos
 	timer_obstaculos.autostart = true
 	
-	# Timer para monedas (cada 5-8 segundos)
 	timer_monedas = Timer.new()
 	timer_monedas.wait_time = 6.5
 	timer_monedas.autostart = true
 	timer_monedas.timeout.connect(_generar_moneda)
 	add_child(timer_monedas)
 	
-	# Cargar monedas guardadas
-	cargar_monedas()
-	
-	# Timer para escudos (solo si están comprados)
+	# Timer para escudos
 	timer_escudos = Timer.new()
-	timer_escudos.wait_time = 15.0  # Cada 15 segundos
+	timer_escudos.wait_time = 15.0
 	timer_escudos.autostart = true
 	timer_escudos.timeout.connect(_generar_escudo)
 	add_child(timer_escudos)
 	
-	# Cargar si el escudo está comprado
-	cargar_estado_escudo()
+	# CARGAR DATOS EN ORDEN CORRECTO
+	print("=== INICIANDO JUEGO ===")
 	
-	# Cargar mejor puntuación guardada
+	# 1. Cargar mejor puntuación
 	cargar_mejor_puntuacion()
+	print("🎯 Mejor puntuación: ", mejor_puntuacion)
 	
-	# Inicializar UI
+	# 2. Cargar monedas
+	cargar_monedas()
+	print("💰 Monedas: ", monedas_acumuladas)
+	
+	# 3. Cargar estado del escudo (IMPORTANTE: después de monedas)
+	cargar_estado_escudo()
+	print("🛡️  Escudo comprado: ", escudo_comprado)
+	
+	# 4. Inicializar UI
 	inicializar_ui()
+	print("✅ Juego listo!")
+
+func get_ruta_config():
+	if OS.has_feature("android"):
+		# En Android usar ruta absoluta
+		return OS.get_user_data_dir() + "/config.cfg"
+	else:
+		# En PC usar ruta normal
+		return "user://config.cfg"
 
 func _process(delta):
 	if juego_activo and jugador.esta_vivo:
@@ -226,8 +240,15 @@ func cargar_mejor_puntuacion():
 
 func guardar_mejor_puntuacion():
 	var config = ConfigFile.new()
+	var ruta = get_ruta_config()
+
+	# Cargar primero
+	var error = config.load(ruta)
+
+	# Actualizar solo la puntuación
 	config.set_value("puntuaciones", "mejor_puntuacion", mejor_puntuacion)
-	config.save("user://config.cfg")
+
+	config.save(ruta)
 
 # --- DIFICULTAD PROGRESIVA ---
 func aumentar_dificultad_progresiva():
@@ -370,50 +391,68 @@ func _generar_moneda():
 	
 	add_child(moneda)
 
-# --- RECOGIDA DE MONEDAS ---
 func _on_moneda_recogida(moneda):
 	monedas_acumuladas += 1
-	guardar_monedas()
+	guardar_datos_juego()  # Usar la nueva función
 	reproducir_sonido(sonido_moneda)
-	# La moneda ya se elimina en Jugador.gd
 
 # --- SISTEMA DE GUARDADO MEJORADO ---
 func cargar_monedas():
 	var config = ConfigFile.new()
-	var error = config.load("user://config.cfg")
+	var error = config.load(get_ruta_config())
 	if error == OK:
 		monedas_acumuladas = config.get_value("monedas", "monedas_acumuladas", 0)
 
-func guardar_monedas():
+func guardar_datos_juego():
 	var config = ConfigFile.new()
-	# Cargar configuración existente primero
-	var error = config.load("user://config.cfg")
-	if error != OK:
-		print("Creando nuevo archivo de configuración")
+	var ruta = get_ruta_config()
 	
-	# Solo actualizar las monedas, mantener otros valores
+	# Cargar archivo existente primero
+	var error = config.load(ruta)
+	
+	# Guardar todos los datos
+	config.set_value("puntuaciones", "mejor_puntuacion", mejor_puntuacion)
 	config.set_value("monedas", "monedas_acumuladas", monedas_acumuladas)
+	config.set_value("tienda", "escudo", escudo_comprado)
 	
-	# Mantener valores existentes si los hay
-	if error == OK:
-		# Preservar mejor puntuación
-		var mejor_puntuacion_existente = config.get_value("puntuaciones", "mejor_puntuacion", 0)
-		config.set_value("puntuaciones", "mejor_puntuacion", mejor_puntuacion_existente)
-		
-		# Preservar compra de escudo si existe
-		var escudo_comprado = config.get_value("tienda", "escudo", false)
-		config.set_value("tienda", "escudo", escudo_comprado)
+	var resultado = config.save(ruta)
 	
-	config.save("user://config.cfg")
+	if resultado == OK:
+		print("✅ Datos guardados en Android")
 
 func cargar_estado_escudo():
 	var config = ConfigFile.new()
-	var error = config.load("user://config.cfg")
+	
+	var error
+	if OS.has_feature("android"):
+		error = config.load(OS.get_user_data_dir() + "/config.cfg")
+	else:
+		error = config.load("user://config.cfg")
+	
 	if error == OK:
-		escudo_comprado = config.get_value("tienda", "escudo", false)
-		# Si no está comprado, detener el timer
-		if not escudo_comprado:
+		# Cargar estado del escudo
+		var escudo_cargado = config.get_value("tienda", "escudo", false)
+		
+		# Asegurar que sea booleano
+		if typeof(escudo_cargado) != TYPE_BOOL:
+			print("⚠️  Escudo no es bool, es: ", typeof(escudo_cargado), " - convirtiendo")
+			escudo_cargado = bool(escudo_cargado)
+		
+		escudo_comprado = escudo_cargado
+		
+		print("🛡️  Estado escudo cargado: ", escudo_comprado)
+		
+		# Configurar timer según estado
+		if escudo_comprado:
+			timer_escudos.start()
+			print("✅ Timer de escudos INICIADO")
+		else:
 			timer_escudos.stop()
+			print("⏸️  Timer de escudos DETENIDO (no comprado)")
+	else:
+		print("🛡️  No se encontró archivo, escudo = false por defecto")
+		escudo_comprado = false
+		timer_escudos.stop()
 
 func _generar_escudo():
 	# NO generar si: juego inactivo, jugador muerto, escudo no comprado, O si jugador ya tiene escudo activo

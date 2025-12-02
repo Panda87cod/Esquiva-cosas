@@ -33,7 +33,15 @@ func configurar_ui():
 func cargar_datos_jugador():
 	# Cargar mejor puntuación
 	var config = ConfigFile.new()
-	var error = config.load("user://config.cfg")
+	
+	# Usar ruta condicional
+	var ruta
+	if OS.has_feature("android"):
+		ruta = OS.get_user_data_dir() + "/config.cfg"
+	else:
+		ruta = "user://config.cfg"
+	
+	var error = config.load(ruta)
 	
 	if error == OK:
 		# Cargar mejor puntuación
