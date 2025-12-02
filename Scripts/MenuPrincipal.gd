@@ -1,3 +1,4 @@
+# MenuPrincipal.gd
 extends CanvasLayer
 
 # --- REFERENCIAS A NODOS DEL INSPECTOR ---

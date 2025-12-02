@@ -1,118 +1,125 @@
+# Tienda.gd - VERSIÓN ESCALABLE
 extends CanvasLayer
 
 var monedas_actuales = 0
+
+# Diccionario de items disponibles en la tienda
+# ¡Para agregar nuevos items solo añade una nueva entrada aquí!
 var items_tienda = {
-	"skin_especial": {
-		"nombre": "Skin Especial", 
-		"precio": 100, 
+	"escudo": {
+		"nombre": "Escudo Protector", 
+		"precio": 30, 
 		"comprado": false,
-		"descripcion": "Nueva apariencia para el jugador"
-	},
-	"doble_puntos": {
-		"nombre": "Doble Puntos", 
-		"precio": 50, 
-		"comprado": false,
-		"descripcion": "Gana el doble de puntos por 30 segundos"
+		"descripcion": "Te protege de un obstáculo. Aparecerá durante el juego.",
+		"funcion_comprar": "_on_comprar_escudo"
 	}
+	# Para agregar un nuevo item en el futuro:
+	# "doble_monedas": {
+	#     "nombre": "Doble Monedas",
+	#     "precio": 50,
+	#     "comprado": false,
+	#     "descripcion": "Gana el doble de monedas por 30 segundos",
+	#     "funcion_comprar": "_on_comprar_doble_monedas"
+	# }
 }
 
 func _ready():
-	# Cargar datos del jugador
 	cargar_datos()
-	
-	# Configurar UI
 	configurar_ui()
-	
-	# Conectar botones
 	$BotonVolver.pressed.connect(_on_volver_presionado)
 
 func cargar_datos():
-	# Cargar monedas y estado de compras
 	var config = ConfigFile.new()
 	var error = config.load("user://config.cfg")
 	if error == OK:
 		monedas_actuales = config.get_value("monedas", "monedas_acumuladas", 0)
-		items_tienda["skin_especial"]["comprado"] = config.get_value("tienda", "skin_especial", false)
-		items_tienda["doble_puntos"]["comprado"] = config.get_value("tienda", "doble_puntos", false)
+		# Cargar estado de TODOS los items
+		for item_key in items_tienda.keys():
+			items_tienda[item_key]["comprado"] = config.get_value("tienda", item_key, false)
 
 func configurar_ui():
-	# Actualizar label de monedas
 	$MonedasTienda.text = "Tus monedas: " + str(monedas_actuales)
-	
-	# Crear items de la tienda
 	crear_items_tienda()
 
 func crear_items_tienda():
-	var contenedor = $ContenedorItems
+	var contenedor = $ContenedorObjetos
 	
-	# Item 1: Skin Especial
-	var item1 = crear_item_ui(
-		"Skin Especial", 
-		"100 monedas", 
-		items_tienda["skin_especial"]["comprado"],
-		items_tienda["skin_especial"]["descripcion"]
-	)
-#	item1.get_node("BotonComprar").pressed.connect(_on_comprar_skin_especial)
-#	contenedor.add_child(item1)
+	# Limpiar contenedor
+	for child in contenedor.get_children():
+		child.queue_free()
 	
-	# Item 2: Doble Puntos
-	var item2 = crear_item_ui(
-		"Doble Puntos", 
-		"50 monedas", 
-		items_tienda["doble_puntos"]["comprado"],
-		items_tienda["doble_puntos"]["descripcion"]
-	)
-#	item2.get_node("BotonComprar").pressed.connect(_on_comprar_doble_puntos)
-#	contenedor.add_child(item2)
+	# Crear un item para CADA entrada en items_tienda
+	for item_key in items_tienda.keys():
+		var item = items_tienda[item_key]
+		var item_ui = crear_item_ui(
+			item["nombre"],
+			item["precio"],
+			item["comprado"],
+			item["descripcion"],
+			item_key
+		)
+		contenedor.add_child(item_ui)
 
-func crear_item_ui(nombre, precio, comprado, descripcion):
+func crear_item_ui(nombre, precio, comprado, descripcion, item_key):
+	# Contenedor principal horizontal
 	var item_container = HBoxContainer.new()
-	item_container.custom_minimum_size = Vector2(400, 80)
+	item_container.custom_minimum_size = Vector2(380, 100)
+	item_container.name = "Item_" + item_key  # Nombre único para referencia
 	
-	# Panel para el item
-	var panel = ColorRect.new()
-	panel.color = Color(0.2, 0.2, 0.4)
-	panel.size = Vector2(400, 70)
-	item_container.add_child(panel)
-	
-	# Contenedor de información
+	# Información (izquierda) - Ocupa TODO el espacio disponible
 	var info_container = VBoxContainer.new()
-	info_container.size = Vector2(250, 60)
+	info_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
 	# Nombre del item
 	var nombre_label = Label.new()
 	nombre_label.text = nombre
-	nombre_label.add_theme_font_size_override("font_size", 20)
+	nombre_label.add_theme_font_size_override("font_size", 22)
 	info_container.add_child(nombre_label)
 	
 	# Descripción
 	var desc_label = Label.new()
 	desc_label.text = descripcion
 	desc_label.add_theme_font_size_override("font_size", 14)
-	desc_label.modulate = Color(0.8, 0.8, 0.8)
+	desc_label.modulate = Color(0.9, 0.9, 0.9)
 	info_container.add_child(desc_label)
 	
 	# Precio
 	var precio_label = Label.new()
-	precio_label.text = precio
-	precio_label.add_theme_font_size_override("font_size", 16)
+	precio_label.text = "Precio: " + str(precio) + " monedas"
+	precio_label.add_theme_font_size_override("font_size", 18)
+	precio_label.modulate = Color(1, 0.8, 0.2)
 	info_container.add_child(precio_label)
 	
-	panel.add_child(info_container)
+	item_container.add_child(info_container)
 	
-	# Botón de compra
+	# Botón (derecha)
 	var boton_comprar = Button.new()
-	boton_comprar.name = "BotonComprar"
-	boton_comprar.text = "COMPRAR" if not comprado else "COMPRADO"
+	boton_comprar.name = "Boton_" + item_key  # Nombre único para el botón
+	boton_comprar.text = "COMPRAR" if not comprado else "✓"
 	boton_comprar.disabled = comprado
-	boton_comprar.size = Vector2(100, 40)
+	boton_comprar.custom_minimum_size = Vector2(80, 50)
+	boton_comprar.add_theme_font_size_override("font_size", 16)
 	
-	# Posicionar botón a la derecha
-	var margin_container = MarginContainer.new()
-	margin_container.add_child(boton_comprar)
-	panel.add_child(margin_container)
+	# Conectar la señal usando Callable y bind para pasar el item_key
+	boton_comprar.pressed.connect(_on_boton_comprar_presionado.bind(item_key))
 	
-	return item_container
+	item_container.add_child(boton_comprar)
+	
+	# Fondo con márgenes
+	var panel = ColorRect.new()
+	panel.color = Color(0.15, 0.15, 0.3, 0.8)
+	panel.size = Vector2(400, 95)
+	panel.add_child(item_container)
+	
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_all", 10)
+	margin.add_child(panel)
+	
+	return margin
+
+# Función GENERAL para manejar compras de cualquier item
+func _on_boton_comprar_presionado(item_key):
+	comprar_item(item_key)
 
 func comprar_item(item_key):
 	var item = items_tienda[item_key]
@@ -121,38 +128,42 @@ func comprar_item(item_key):
 		monedas_actuales -= item["precio"]
 		item["comprado"] = true
 		
-		# Guardar cambios
 		guardar_datos()
-		
-		# Actualizar UI
-		configurar_ui()
+		configurar_ui()  # Esto recreará todos los items con estados actualizados
 		
 		print("¡Item comprado: ", item["nombre"], "!")
+		
+		# Llamar a función específica si existe
+		if item.has("funcion_comprar") and has_method(item["funcion_comprar"]):
+			call(item["funcion_comprar"])
 	else:
 		print("No tienes suficientes monedas o ya compraste este item")
 
 func guardar_datos():
 	var config = ConfigFile.new()
-	# Cargar configuración existente
 	var error = config.load("user://config.cfg")
 	if error != OK:
 		print("Creando nuevo archivo de configuración")
 	
-	# Guardar monedas y estado de items
+	# Guardar monedas
 	config.set_value("monedas", "monedas_acumuladas", monedas_actuales)
-	config.set_value("tienda", "skin_especial", items_tienda["skin_especial"]["comprado"])
-	config.set_value("tienda", "doble_puntos", items_tienda["doble_puntos"]["comprado"])
 	
-	# Guardar archivo
+	# Guardar estado de TODOS los items
+	for item_key in items_tienda.keys():
+		config.set_value("tienda", item_key, items_tienda[item_key]["comprado"])
+	
 	config.save("user://config.cfg")
-	
 	print("Datos guardados correctamente")
 
-func _on_comprar_skin_especial():
-	comprar_item("skin_especial")
+# Funciones específicas para cada item (se llaman automáticamente después de comprar)
+func _on_comprar_escudo():
+	print("¡Escudo desbloqueado! Aparecerá en el juego.")
+	# Aquí puedes agregar lógica específica para el escudo
+	# Por ejemplo: notificar a la escena Principal que el escudo está desbloqueado
 
-func _on_comprar_doble_puntos():
-	comprar_item("doble_puntos")
+# Para agregar un nuevo item en el futuro, solo necesitas:
+# 1. Agregar una entrada en items_tienda
+# 2. Crear una función _on_comprar_[nombre_item]() si necesitas lógica específica
 
 func _on_volver_presionado():
 	get_tree().change_scene_to_file("res://Escenas/MenuPrincipal.tscn")

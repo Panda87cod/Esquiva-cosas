@@ -1,9 +1,10 @@
+# Obstaculo.gd
 extends Area2D
 
 var velocidad = 300
 
 func _ready():
-	pass
+	add_to_group("obstaculos")
 
 func _physics_process(delta):
 	position.x -= velocidad * delta
